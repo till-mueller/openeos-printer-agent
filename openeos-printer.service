@@ -1,0 +1,36 @@
+[Unit]
+Description=OpenEOS Printer Agent
+Documentation=https://github.com/openeos/openeos-printer-agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=openeos
+Group=openeos
+WorkingDirectory=/opt/openeos-printer-agent
+ExecStart=/opt/openeos-printer-agent/venv/bin/python -m src.main --config /opt/openeos-printer-agent/config/config.yaml
+Restart=always
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+# Security hardening
+ProtectSystem=strict
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+
+# Allow USB printer access
+SupplementaryGroups=lp plugdev
+
+# Allow write access to cache and logs
+ReadWritePaths=/opt/openeos-printer-agent/cache /var/log/openeos-printer
+
+# Environment
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

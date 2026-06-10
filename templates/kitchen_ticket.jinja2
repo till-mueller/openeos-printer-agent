@@ -1,0 +1,60 @@
+{% set cols = 42 if paper_width|default(80) == 80 else 32 %}
+{% set sep = "=" * cols %}
+{% set line = "-" * cols %}
+
+<<CENTER>><<BIG>>K U E C H E<</BIG>><</CENTER>>
+{{ sep }}
+
+<<CENTER>><<BIG>>#{{ daily_number|default(order_number|default("---")) }}<</BIG>><</CENTER>>
+
+{% if table_number is defined and table_number %}
+<<CENTER>><<BOLD>>Tisch {{ table_number }}<</BOLD>><</CENTER>>
+{% endif %}
+{% if customer_name is defined and customer_name %}
+<<CENTER>>Kunde: {{ customer_name }}<</CENTER>>
+{% endif %}
+{% if priority is defined and priority == "high" %}
+
+<<CENTER>><<BOLD>><<BIG>>!!! EILIG !!!<</BIG>><</BOLD>><</CENTER>>
+{% endif %}
+
+{{ line }}
+{% if created_at is defined and created_at %}
+Bestellt: {{ created_at|strftime("%H:%M") }}
+{% endif %}
+{% if station_name is defined and station_name %}
+Station: {{ station_name }}
+{% endif %}
+{{ sep }}
+
+<<LEFT>>
+{% for item in items|default([]) %}
+<<BOLD>><<BIG>>{{ item.quantity }}x {{ item.name }}<</BIG>><</BOLD>>
+{% if item.notes %}
+    >> {{ item.notes }}
+{% endif %}
+{% if item.kitchen_notes %}
+    KUECHE: {{ item.kitchen_notes }}
+{% endif %}
+{% if item.options is defined and item.options %}
+{% for opt in item.options %}
+    + {{ opt }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{{ sep }}
+
+{% if order_item_id is defined and order_item_id %}
+<<CENTER>><<BARCODE:CODE128:{{ order_item_id }}>><</CENTER>>
+<<CENTER>>{{ order_item_id }}<</CENTER>>
+{% elif order_id is defined and order_id %}
+<<CENTER>><<BARCODE:CODE128:{{ order_id }}>><</CENTER>>
+<<CENTER>>{{ order_id }}<</CENTER>>
+{% endif %}
+
+{% if created_at is defined and created_at %}
+<<CENTER>>{{ created_at|strftime("%d.%m.%Y %H:%M") }}<</CENTER>>
+{% endif %}
+<<FEED:3>>
+<<CUT>>

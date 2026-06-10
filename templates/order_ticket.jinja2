@@ -1,0 +1,29 @@
+{% set cols = 42 if paper_width|default(80) == 80 else 32 %}
+{% set sep = "=" * cols %}
+{% set line = "-" * cols %}
+<<CENTER>><<BIG>>BESTELLUNG<</BIG>><</CENTER>>
+{{ sep }}
+<<CENTER>><<BIG>>#{{ daily_number|default(order_number|default("---")) }}<</BIG>><</CENTER>>
+{{ line }}
+{% if table_number is defined and table_number %}
+Tisch: {{ table_number }}
+{% endif %}
+{% if customer_name is defined and customer_name %}
+Kunde: {{ customer_name }}
+{% endif %}
+Datum: {{ created_at|strftime("%d.%m.%Y %H:%M") }}
+{{ sep }}
+{% for item in items|default([]) %}
+{{ "%-3s"|format(item.quantity ~ "x") }} {{ item.name.ljust(cols - 14) }} {{ item.total|currency|rjust(10) }}
+{% if item.notes %}
+     {{ item.notes }}
+{% endif %}
+{% endfor %}
+{{ sep }}
+<<BOLD>>{{ "GESAMT:".ljust(cols - 12) }}{{ total|default(0)|currency|rjust(12) }}<</BOLD>>
+{% if payment_method is defined %}
+{{ line }}
+Zahlungsart: {{ payment_method }}
+{% endif %}
+<<FEED:3>>
+<<CUT>>

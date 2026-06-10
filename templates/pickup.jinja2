@@ -1,0 +1,18 @@
+{% set cols = 42 if paper_width|default(80) == 80 else 32 %}
+{% set sep = "=" * cols %}
+{% set line = "-" * cols %}
+<<CENTER>><<BIG>>ABHOLUNG<</BIG>><</CENTER>>
+{{ sep }}
+<<CENTER>><<BIG>>#{{ daily_number|default(order_number|default("---")) }}<</BIG>><</CENTER>>
+{{ line }}
+{% if customer_name is defined and customer_name %}
+<<BOLD>>Kunde: {{ customer_name }}<</BOLD>>
+{% endif %}
+{{ line }}
+{% for item in items|default([]) %}
+{{ item.quantity }}x {{ item.name }}
+{% endfor %}
+{{ sep }}
+<<CENTER>>{{ created_at|strftime("%d.%m.%Y %H:%M") }}<</CENTER>>
+<<FEED:3>>
+<<CUT>>

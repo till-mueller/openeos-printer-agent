@@ -1,0 +1,56 @@
+{% set cols = 42 if paper_width|default(80) == 80 else 32 %}
+{% set sep = "=" * cols %}
+{% set line = "-" * cols %}
+<<CENTER>><<BIG>>{{ organization.name|default("OpenEOS") }}<</BIG>><</CENTER>>
+{% if organization.address is defined %}
+<<CENTER>>{{ organization.address }}<</CENTER>>
+{% endif %}
+{% if organization.phone is defined %}
+<<CENTER>>Tel: {{ organization.phone }}<</CENTER>>
+{% endif %}
+<<CENTER>>{{ sep }}<</CENTER>>
+{% if event_name is defined %}
+<<CENTER>>{{ event_name }}<</CENTER>>
+<<CENTER>>{{ line }}<</CENTER>>
+{% endif %}
+<<BOLD>>Bestellung #{{ order_number|default("---") }}<</BOLD>>
+Datum: {{ created_at|strftime("%d.%m.%Y %H:%M") }}
+{% if table_number is defined and table_number %}
+Tisch: {{ table_number }}
+{% endif %}
+{% if customer_name is defined and customer_name %}
+Kunde: {{ customer_name }}
+{% endif %}
+{{ line }}
+{% for item in items|default([]) %}
+{{ "%-3s"|format(item.quantity ~ "x") }} {{ item.name.ljust(cols - 14) }} {{ item.total|currency|rjust(10) }}
+{% if item.notes %}
+     Hinweis: {{ item.notes }}
+{% endif %}
+{% endfor %}
+{{ sep }}
+{% if subtotal is defined %}
+{{ "Zwischensumme:".ljust(cols - 12) }}{{ subtotal|currency|rjust(12) }}
+{% endif %}
+{% if tax_amount is defined %}
+{{ ("MwSt " ~ tax_rate|default("19") ~ "%:").ljust(cols - 12) }}{{ tax_amount|currency|rjust(12) }}
+{% endif %}
+<<BOLD>>{{ "GESAMT:".ljust(cols - 12) }}{{ total|default(0)|currency|rjust(12) }}<</BOLD>>
+{{ line }}
+{% if payment_method is defined %}
+Zahlungsart: {{ payment_method }}
+{% if paid_amount is defined %}
+Bezahlt: {{ paid_amount|currency }}
+{% endif %}
+{% if change is defined and change > 0 %}
+Rueckgeld: {{ change|currency }}
+{% endif %}
+{% endif %}
+{{ line }}
+{% if qr_url is defined %}
+<<CENTER>><<QRCODE:{{ qr_url }}>><</CENTER>>
+{% endif %}
+<<CENTER>>Vielen Dank fuer Ihren Einkauf!<</CENTER>>
+<<CENTER>>{{ created_at|strftime("%d.%m.%Y %H:%M") }}<</CENTER>>
+<<FEED:3>>
+<<CUT>>

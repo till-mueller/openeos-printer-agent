@@ -1,0 +1,26 @@
+[Unit]
+Description=OpenEOS Kiosk Display
+After=graphical-session.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=openeos
+Group=openeos
+WorkingDirectory=/opt/openeos-printer-agent
+
+# Set display environment for the kiosk browser
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/openeos/.Xauthority
+Environment=OPENEOS_KIOSK_CONFIG=/opt/openeos-printer-agent/config/config.yaml
+
+ExecStartPre=/bin/sleep 5
+ExecStart=/opt/openeos-printer-agent/kiosk.sh
+
+Restart=always
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=300
+
+[Install]
+WantedBy=graphical-session.target

@@ -1,0 +1,19 @@
+==========================================
+            OPENEOS TEST-DRUCK
+==========================================
+
+Drucker:    {{ printerName | default("(unbekannt)") }}
+Auftrag:    {{ jobId | default("(ohne)") }}
+Zeit:       {{ timestamp | default("") }}
+
+{{ body | default("Dies ist ein Test-Druck aus dem
+Super-Admin-Interface.") }}
+
+------------------------------------------
+Wenn du das hier siehst, kommuniziert
+der Agent korrekt mit dem Backend.
+==========================================
+
+
+
+<<CUT>>
