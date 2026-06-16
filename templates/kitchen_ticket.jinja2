@@ -66,7 +66,7 @@ Station: {{ station_name }}
 {% endif %}
 {% if item.options is defined and item.options %}
 {% for opt in item.options %}
-    + {{ opt }}
+    {{ opt }}
 {% endfor %}
 {% endif %}
 
