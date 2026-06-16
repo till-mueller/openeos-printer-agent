@@ -1,23 +1,51 @@
 {% set cols = 42 if paper_width|default(80) == 80 else 32 %}
 {% set sep = "=" * cols %}
 {% set line = "-" * cols %}
+{% set box = "#" * cols %}
+{# Ableitung des Kanals aus Quelle + Abwicklungsart (vgl. Frontend getOrderChannel) #}
+{% set src = source|default("pos") %}
+{% set ff = fulfillment_type|default("counter_pickup") %}
+{% if src == "online" or src == "qr_order" %}
+{%   set channel = "online" %}
+{% elif ff == "table_service" %}
+{%   set channel = "service" %}
+{% else %}
+{%   set channel = "counter" %}
+{% endif %}
 
 <<CENTER>><<BIG>>K U E C H E<</BIG>><</CENTER>>
 {{ sep }}
 
 <<CENTER>><<BIG>>#{{ daily_number|default(order_number|default("---")) }}<</BIG>><</CENTER>>
 
+{# ---- Abgabe-/Ziel-Banner: wohin gehoert dieser Bon? ---- #}
+{{ box }}
+{% if channel == "service" %}
+<<CENTER>><<BOLD>>>> BEDIENUNG <<<</BOLD>><</CENTER>>
 {% if table_number is defined and table_number %}
-<<CENTER>><<BOLD>>Tisch {{ table_number }}<</BOLD>><</CENTER>>
+<<CENTER>><<BIG>>TISCH {{ table_number }}<</BIG>><</CENTER>>
+{% else %}
+<<CENTER>><<BOLD>>TISCH UNBEKANNT<</BOLD>><</CENTER>>
 {% endif %}
+{% elif channel == "online" %}
+<<CENTER>><<BOLD>>>> ONLINE <<<</BOLD>><</CENTER>>
+<<CENTER>><<BIG>>ABHOLUNG<</BIG>><</CENTER>>
 {% if customer_name is defined and customer_name %}
-<<CENTER>>Kunde: {{ customer_name }}<</CENTER>>
+<<CENTER>><<BOLD>>{{ customer_name }}<</BOLD>><</CENTER>>
 {% endif %}
+{% else %}
+<<CENTER>><<BOLD>>>> SB-KASSE <<<</BOLD>><</CENTER>>
+<<CENTER>>Ausgabe an der Theke<</CENTER>>
+{% if customer_name is defined and customer_name %}
+<<CENTER>>{{ customer_name }}<</CENTER>>
+{% endif %}
+{% endif %}
+{{ box }}
+
 {% if priority is defined and priority == "high" %}
-
 <<CENTER>><<BOLD>><<BIG>>!!! EILIG !!!<</BIG>><</BOLD>><</CENTER>>
-{% endif %}
 
+{% endif %}
 {{ line }}
 {% if created_at is defined and created_at %}
 Bestellt: {{ created_at|strftime("%H:%M") }}
