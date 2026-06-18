@@ -37,6 +37,13 @@ class PrinterAgent:
         self._local_server: LocalServer | None = None
         self._health_check_task: asyncio.Task | None = None
 
+        # Jobs the backend replays immediately on (re)connect can arrive before
+        # the job queue + workers exist (connect happens several startup steps
+        # before the queue is built). Buffer them here and drain once the queue
+        # is live so replayed jobs are never silently dropped.
+        self._early_jobs: list[dict] = []
+        self._accepting_jobs = False
+
     async def start(self) -> None:
         """Start the printer agent with all components."""
         config = self._config
@@ -139,6 +146,9 @@ class PrinterAgent:
         self._job_queue.start_workers()
         # Re-enqueue jobs that survived a crash/restart
         await self._job_queue.load_persisted()
+        # Queue + workers are live — accept jobs and flush anything the backend
+        # replayed while we were still starting up.
+        await self._drain_early_jobs()
 
         # 13. Update local server with full components
         if self._local_server:
@@ -171,9 +181,28 @@ class PrinterAgent:
         The return value becomes the socket.io ack: True only after the job
         has been accepted (and persisted, if a job store is available).
         """
-        if self._job_queue:
+        if self._job_queue and self._accepting_jobs:
             return await self._job_queue.enqueue(data)
-        return False
+        # Arrived before the queue/workers are ready (backend replays queued
+        # jobs immediately on connect). Buffer and drain once the queue is up,
+        # acking as accepted since the job will be processed.
+        logger.info(
+            f"Buffering print job {data.get('jobId', 'unknown')} until queue is ready"
+        )
+        self._early_jobs.append(data)
+        return True
+
+    async def _drain_early_jobs(self) -> None:
+        """Mark the queue ready and enqueue any jobs buffered during startup."""
+        self._accepting_jobs = True
+        if not self._early_jobs:
+            return
+        buffered = self._early_jobs
+        self._early_jobs = []
+        logger.info(f"Draining {len(buffered)} buffered print job(s) into the queue")
+        for job in buffered:
+            if self._job_queue:
+                await self._job_queue.enqueue(job)
 
     async def _handle_server_ready(self) -> None:
         """After (re)connecting: deliver job outcomes that could not be
@@ -216,9 +245,10 @@ class PrinterAgent:
             logger.warning(f"Printer {printer_id} not found for cash drawer open")
             return
 
+        pin = self._config.cash_drawer_pin
         try:
-            await printer.execute(lambda p: p.cashdraw(2))
-            logger.info(f"Cash drawer opened on printer {printer_id}")
+            await printer.execute(lambda p: p.cashdraw(pin))
+            logger.info(f"Cash drawer opened on printer {printer_id} (kick pin {pin})")
         except Exception as e:
             logger.error(f"Failed to open cash drawer on printer {printer_id}: {e}")
 
@@ -239,6 +269,7 @@ class PrinterAgent:
             # are discarded, but pending jobs survive in the job store and are
             # re-enqueued below.
             if self._job_queue:
+                self._accepting_jobs = False
                 await self._job_queue.stop_workers()
                 self._job_queue = JobQueue(
                     printer_manager=self._printer_manager,
@@ -249,6 +280,7 @@ class PrinterAgent:
                 )
                 self._job_queue.start_workers()
                 await self._job_queue.load_persisted()
+                await self._drain_early_jobs()
 
                 # Update local server reference
                 if self._local_server:

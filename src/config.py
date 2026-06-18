@@ -81,6 +81,9 @@ class AppConfig(BaseModel):
     # SQLite file for the crash-safe print-job queue; defaults to
     # print-jobs.db next to the device token file.
     job_store_file: Optional[str] = None
+    # Cash-drawer kick connector pin. Most Epson drawers are wired to pin 2,
+    # some to pin 5 — set to whichever physically opens the drawer.
+    cash_drawer_pin: int = 2
 
 
 def load_config(path: Optional[str] = None) -> AppConfig:
