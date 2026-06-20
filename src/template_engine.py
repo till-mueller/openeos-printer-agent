@@ -17,6 +17,11 @@ def _filter_strftime(value, fmt: str = "%d.%m.%Y %H:%M") -> str:
         from datetime import datetime
         try:
             dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            # Timestamps arrive in UTC (…Z); convert to the agent's local time
+            # zone before formatting, otherwise the ticket shows UTC (e.g. 2h
+            # behind during CEST).
+            if dt.tzinfo is not None:
+                dt = dt.astimezone()
             return dt.strftime(fmt)
         except ValueError:
             return value
