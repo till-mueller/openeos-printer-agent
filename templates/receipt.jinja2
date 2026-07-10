@@ -1,6 +1,10 @@
 {% set cols = 42 if paper_width|default(80) == 80 else 32 %}
 {% set sep = "=" * cols %}
 {% set line = "-" * cols %}
+{% if is_test %}
+<<CENTER>><<BOLD>><<BIG>>*** TESTMODUS ***<</BIG>><</BOLD>><</CENTER>>
+
+{% endif %}
 <<CENTER>><<BIG>>{{ organization.name|default("OpenEOS") }}<</BIG>><</CENTER>>
 {% if organization.address is defined %}
 <<CENTER>>{{ organization.address }}<</CENTER>>
