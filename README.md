@@ -79,9 +79,19 @@ See `config/config.example.yaml` for all options. Key settings:
 | Setting | Description |
 |---------|-------------|
 | `server.url` | OpenEOS API server URL |
-| `server.device_token` | Device authentication token (from admin panel) |
+| `server.device_token` | Device authentication token (from admin panel). Optional — leave unset to use self-registration instead. |
 | `printers[].connection_type` | `usb`, `network`, or `bluetooth` |
 | `printers[].paper_width` | `80` (80mm) or `58` (58mm) |
+
+## Self-Registration
+
+If `server.device_token` is not configured, the agent registers itself with the backend instead of requiring a pre-provisioned token:
+
+1. On startup, the agent checks for a token in `server.device_token`, then in the persistent token file (`device_token_file`, default `/var/lib/openeos-printer/device.json`).
+2. If neither is found, it calls `POST /devices/init` with a suggested name and `deviceType: "printer_agent"`, and receives a device token plus a 6-digit **verification code**.
+3. The verification code is shown in the agent logs (and on the local status page) and the token is persisted to the token file for future restarts.
+4. An organization admin enters the verification code in the OpenEOS dashboard to approve the device and assign it to their organization.
+5. The agent polls `GET /devices/status` until the device is verified, then connects via WebSocket and becomes available for selection when adding a printer under **Drucker** in the dashboard.
 
 ## Architecture
 
