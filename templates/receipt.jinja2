@@ -51,6 +51,20 @@ Rueckgeld: {{ change|currency }}
 {% endif %}
 {% endif %}
 {{ line }}
+{% if tse is defined and tse %}
+{% if tse.failed %}
+<<CENTER>>Sicherheitseinrichtung nicht verfuegbar<</CENTER>>
+{% else %}
+Signatur-Nr: {{ tse.signature_counter }}
+Trx-Nr: {{ tse.transaction_number }}
+Kassen-Signatur:
+{{ tse.signature }}
+{% if tse.qr_code_data %}
+<<CENTER>><<QRCODE:{{ tse.qr_code_data }}>><</CENTER>>
+{% endif %}
+{% endif %}
+{{ line }}
+{% endif %}
 {% if qr_url is defined %}
 <<CENTER>><<QRCODE:{{ qr_url }}>><</CENTER>>
 {% endif %}

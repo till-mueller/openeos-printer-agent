@@ -35,6 +35,33 @@ class TestTemplateEngine:
         assert "Bratwurst" in result
         assert "Cola" in result
 
+    def test_render_receipt_with_tse_signature(self, sample_print_job):
+        engine = TemplateEngine()
+        result = engine.render(
+            "receipt",
+            {
+                **sample_print_job["payload"],
+                "paper_width": 80,
+                "tse": {
+                    "failed": False,
+                    "signature": "abc123signature",
+                    "signature_counter": 7,
+                    "transaction_number": 42,
+                    "qr_code_data": "V0;client;42;...",
+                },
+            },
+        )
+        assert "abc123signature" in result
+        assert "Trx-Nr: 42" in result
+
+    def test_render_receipt_with_tse_outage(self, sample_print_job):
+        engine = TemplateEngine()
+        result = engine.render(
+            "receipt",
+            {**sample_print_job["payload"], "paper_width": 80, "tse": {"failed": True}},
+        )
+        assert "Sicherheitseinrichtung nicht verfuegbar" in result
+
     def test_render_kitchen(self, sample_kitchen_job):
         engine = TemplateEngine()
         result = engine.render("kitchen", {**sample_kitchen_job["payload"], "paper_width": 80})
