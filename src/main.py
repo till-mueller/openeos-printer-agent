@@ -15,6 +15,7 @@ from .job_queue import JobQueue
 from .job_store import JobStore
 from .websocket_client import WebSocketClient
 from .local_server import LocalServer
+from .tse_signer import TseSigner
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,11 @@ class PrinterAgent:
 
         logger.info(f"Device verified! Organization: {self._device_registrar.organization_name}")
 
+        # 6b. TSE signer (optional — local hardware TSE attached to this host)
+        tse_signer = TseSigner(config.tse.rpc_url) if config.tse.enabled else None
+        if tse_signer:
+            logger.info(f"TSE signing enabled (local hardware via {config.tse.rpc_url})")
+
         # 7. WebSocket Client (needs device_token, created before PrinterManager for config fetch)
         self._ws_client = WebSocketClient(
             config=config,
@@ -100,6 +106,7 @@ class PrinterAgent:
             on_config_update=self._handle_config_update,
             on_cash_drawer=self._handle_cash_drawer,
             on_ready=self._handle_server_ready,
+            tse_signer=tse_signer,
         )
 
         # 8. Connect WebSocket

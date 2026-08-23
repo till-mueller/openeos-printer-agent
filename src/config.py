@@ -70,12 +70,26 @@ class SentryConfig(BaseModel):
     traces_sample_rate: float = 0.1
 
 
+class TseConfig(BaseModel):
+    """Local/offline hardware TSE (e.g. Swissbit USB/SD) attached to this
+    agent's host. When enabled, the agent handles tseSignTransaction /
+    tseTestConnection / tseExportData jobs from the backend by calling the
+    stick's local SE-API RPC endpoint — see tse_signer.py."""
+
+    enabled: bool = False
+    # Local SE-API / embedding interface endpoint for the attached TSE
+    # hardware. Default matches Swissbit's TSE-Server local RPC port —
+    # verify against your actual middleware before relying on it.
+    rpc_url: str = "http://localhost:8998"
+
+
 class AppConfig(BaseModel):
     agent: AgentConfig = AgentConfig()
     server: ServerConfig = ServerConfig()
     logging: LoggingConfig = LoggingConfig()
     local_server: LocalServerConfig = LocalServerConfig()
     sentry: SentryConfig = SentryConfig()
+    tse: TseConfig = TseConfig()
     printers: list[PrinterConfig] = []
     device_token_file: str = "/var/lib/openeos-printer/device.json"
     # SQLite file for the crash-safe print-job queue; defaults to

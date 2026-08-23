@@ -61,3 +61,15 @@ sentry:
   dsn: ""
   environment: "production"
   traces_sample_rate: 0.1
+
+# ─── Local hardware TSE (fiscalization, KassenSichV) ─────────────
+# Only needed if this agent's host has a TSE stick (e.g. Swissbit) attached
+# and the organization's TSE settings (web admin) select "Local hardware" as
+# provider with this device's ID as the agent. Leave disabled for orgs using
+# the fiskaly cloud TSE instead — no local hardware needed there.
+tse:
+  enabled: false
+  # Local SE-API / embedding-interface RPC endpoint exposed by the TSE
+  # stick's own middleware on this host. Verify the real port/path against
+  # your hardware vendor's docs — this default is a placeholder.
+  rpc_url: "http://localhost:8998"

@@ -7,6 +7,7 @@ import socketio
 
 from .config import AppConfig, PrinterConfig
 from .system_monitor import SystemMonitor
+from .tse_signer import TseSigner, TseSignerError
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ class WebSocketClient:
         on_config_update: Optional[Callable] = None,
         on_cash_drawer: Optional[Callable] = None,
         on_ready: Optional[Callable] = None,
+        tse_signer: Optional[TseSigner] = None,
     ) -> None:
         self._config = config
         self._device_token = device_token
@@ -51,6 +53,7 @@ class WebSocketClient:
         self._on_config_update = on_config_update
         self._on_cash_drawer = on_cash_drawer
         self._on_ready = on_ready
+        self._tse_signer = tse_signer
 
         self._sio = socketio.AsyncClient(
             reconnection=True,
@@ -128,6 +131,44 @@ class WebSocketClient:
             logger.info("Received printer config update from server")
             if self._on_config_update:
                 await self._on_config_update(data)
+
+        @sio.on("tseSignTransaction")
+        async def on_tse_sign_transaction(data):
+            """TSE signing job — the return value is the socket.io ack,
+            which IS the response (see TseService/LocalTseProvider on the
+            backend). No local hardware configured -> reported as an outage,
+            same as any other unreachable TSE."""
+            if not self._tse_signer:
+                return {"ok": False, "error": "TSE not configured on this agent"}
+            try:
+                return await self._tse_signer.sign_transaction(
+                    client_id=data.get("clientId"),
+                    amount=data.get("amount"),
+                    currency=data.get("currency"),
+                    payment_method=data.get("paymentMethod"),
+                )
+            except TseSignerError as e:
+                logger.error(f"TSE sign_transaction failed: {e}")
+                return {"ok": False, "error": str(e)}
+            except Exception as e:
+                logger.error(f"TSE sign_transaction unexpected error: {e}")
+                return {"ok": False, "error": str(e)}
+
+        @sio.on("tseTestConnection")
+        async def on_tse_test_connection(_data):
+            if not self._tse_signer:
+                return {"ok": False, "message": "TSE not configured on this agent"}
+            return await self._tse_signer.test_connection()
+
+        @sio.on("tseExportData")
+        async def on_tse_export_data(data):
+            if not self._tse_signer:
+                return {"ok": False, "message": "TSE not configured on this agent"}
+            return await self._tse_signer.export_data(
+                client_id=data.get("clientId"),
+                period_start=data.get("periodStart"),
+                period_end=data.get("periodEnd"),
+            )
 
         @sio.on("configUpdate")
         async def on_config_update(data):
