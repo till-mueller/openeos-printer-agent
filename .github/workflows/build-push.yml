@@ -68,4 +68,8 @@ jobs:
           # Raspberry Pi is the primary target (arm64 for Pi 4/5 on 64-bit OS,
           # arm/v7 for older/32-bit installs); amd64 covers x86 test rigs and
           # homelab hosts running the agent in a container instead of bare metal.
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          # PRs can't push anyway (see `push:` above) and get no usable
+          # artifact from the arm targets, so they only pay for a single
+          # native-ish smoke build instead of ~12 minutes of QEMU-emulated
+          # C-extension compiles (psutil, Pillow) across all three platforms.
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64,linux/arm/v7' }}
