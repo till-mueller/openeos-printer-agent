@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import yaml
 from pydantic import BaseModel
@@ -22,12 +22,12 @@ class PrinterConfig(BaseModel):
     localId: str
     name: str
     type: str = "receipt"  # receipt | kitchen | label
-    connectionType: str = "usb"  # usb | network | bluetooth
+    connectionType: Literal["usb", "network", "bluetooth"] = "usb"
     usbVendorId: Optional[str] = None  # e.g. "0x04b8"
     usbProductId: Optional[str] = None  # e.g. "0x0202"
     ipAddress: Optional[str] = None  # for network printers
     port: Optional[int] = None
-    paperWidth: int = 80  # 58 or 80 mm
+    paperWidth: Literal[58, 80] = 80  # mm
 
 
 class ServerConfig(BaseModel):

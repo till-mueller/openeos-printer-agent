@@ -7,10 +7,10 @@ constructing a response) — plain unittest.mock avoids that version coupling.
 """
 
 import base64
+from unittest.mock import MagicMock, patch
 
 import aiohttp
 import pytest
-from unittest.mock import MagicMock, patch
 
 from src.tse_signer import TseSigner, TseSignerError
 

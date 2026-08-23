@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, call
-import pytest
 
-from src.escpos_renderer import render_to_printer, _handle_tag
+from src.escpos_renderer import _handle_tag, render_to_printer
 
 
 class TestRenderToPrinter:
@@ -27,8 +26,11 @@ class TestRenderToPrinter:
     def test_big_tag(self):
         printer = self._make_printer()
         render_to_printer(printer, "{{BIG}}Big text{{/BIG}}")
-        printer.set.assert_any_call(width=2, height=2)
-        printer.set.assert_any_call(width=1, height=1)
+        # python-escpos's width/height params are no-ops without
+        # custom_size=True, so BIG uses the native double_width/double_height
+        # flags instead (see _handle_tag's BIG//BIG branches).
+        printer.set.assert_any_call(double_width=True, double_height=True)
+        printer.set.assert_any_call(normal_textsize=True)
 
     def test_underline_tag(self):
         printer = self._make_printer()
@@ -66,9 +68,15 @@ class TestRenderToPrinter:
         assert len(newline_calls) >= 3
 
     def test_barcode_tag(self):
+        # python-escpos declares python-barcode as a direct dependency, so
+        # it's always importable in practice — _print_software_barcode takes
+        # the image-rendering path (printer.image), not the hardware
+        # printer.barcode() fallback (which only fires when python-barcode
+        # is missing).
         printer = self._make_printer()
         render_to_printer(printer, "{{BARCODE:12345}}")
-        printer.barcode.assert_called_once_with("12345", "CODE128", function_type="B")
+        printer.image.assert_called_once()
+        printer.barcode.assert_not_called()
 
     def test_multiple_copies(self):
         printer = self._make_printer()

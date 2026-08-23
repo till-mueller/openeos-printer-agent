@@ -1,12 +1,31 @@
+from datetime import datetime, timezone
+
 import pytest
 
-from src.template_engine import TemplateEngine, _filter_strftime, _filter_currency
+import src.template_engine as template_engine
+from src.template_engine import TemplateEngine, _filter_currency, _filter_strftime
+
+
+@pytest.fixture(autouse=True)
+def isolate_template_cache(tmp_path, monkeypatch):
+    """update_server_templates() persists to CACHE_DIR on disk so the agent
+    survives a restart — but that means every test that calls it pollutes
+    the real project cache/templates/ directory for good, silently shadowing
+    the built-in templates on every later local pytest run (it's gitignored,
+    so this never reaches CI, but it's a real trap for local development).
+    Point CACHE_DIR at a throwaway tmp_path for the duration of each test."""
+    monkeypatch.setattr(template_engine, "CACHE_DIR", tmp_path / "cache" / "templates")
 
 
 class TestFilters:
     def test_strftime_iso_string(self):
+        # UTC input is converted to the runner's local timezone before
+        # formatting (see _filter_strftime) — assert against that conversion
+        # rather than a hardcoded wall-clock string, which only happened to
+        # hold on machines in UTC/GMT with no DST offset.
         result = _filter_strftime("2024-06-15T14:30:00Z", "%d.%m.%Y %H:%M")
-        assert result == "15.06.2024 14:30"
+        expected = datetime(2024, 6, 15, 14, 30, tzinfo=timezone.utc).astimezone().strftime("%d.%m.%Y %H:%M")
+        assert result == expected
 
     def test_strftime_default_format(self):
         result = _filter_strftime("2024-06-15T14:30:00+00:00")
@@ -64,7 +83,7 @@ class TestTemplateEngine:
 
     def test_render_kitchen(self, sample_kitchen_job):
         engine = TemplateEngine()
-        result = engine.render("kitchen", {**sample_kitchen_job["payload"], "paper_width": 80})
+        result = engine.render("kitchen_ticket", {**sample_kitchen_job["payload"], "paper_width": 80})
         assert "KUECHE" in result
         assert "#42" in result
         assert "Bratwurst" in result
@@ -73,7 +92,7 @@ class TestTemplateEngine:
 
     def test_render_order(self, sample_print_job):
         engine = TemplateEngine()
-        result = engine.render("order", {**sample_print_job["payload"], "paper_width": 80})
+        result = engine.render("order_ticket", {**sample_print_job["payload"], "paper_width": 80})
         assert "BESTELLUNG" in result
 
     def test_render_pickup(self, sample_print_job):
@@ -87,8 +106,8 @@ class TestTemplateEngine:
         engine = TemplateEngine()
         templates = engine.get_available_templates()
         assert "receipt" in templates
-        assert "kitchen" in templates
-        assert "order" in templates
+        assert "kitchen_ticket" in templates
+        assert "order_ticket" in templates
         assert "pickup" in templates
 
     def test_missing_template(self):
