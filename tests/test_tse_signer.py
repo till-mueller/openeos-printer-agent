@@ -102,6 +102,18 @@ class TestSignTransaction:
                     client_id="client-1", amount=12.5, currency="EUR", payment_method="cash"
                 )
 
+    async def test_incomplete_response_raises_rather_than_reporting_success(self, signer):
+        # A 200 with a schema mismatch (e.g. wrong field names) must not be
+        # reported as a successful signature — that would fiscalize a sale
+        # against a record missing the fields a real receipt/audit needs.
+        ensure_resp = _FakeResponse(status=200)
+        tx_resp = _FakeResponse(status=200, json_data={"transactionNumber": 1})
+        with patch.object(aiohttp.ClientSession, "post", _mock_calls(ensure_resp, tx_resp)):
+            with pytest.raises(TseSignerError, match="missing required field"):
+                await signer.sign_transaction(
+                    client_id="client-1", amount=12.5, currency="EUR", payment_method="cash"
+                )
+
 
 class TestConnection:
     async def test_success(self, signer):

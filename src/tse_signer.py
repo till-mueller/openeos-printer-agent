@@ -18,7 +18,6 @@ blocking the sale.
 
 import base64
 import logging
-from typing import Optional
 
 import aiohttp
 
@@ -29,9 +28,27 @@ class TseSignerError(Exception):
     pass
 
 
+#: Fields a real signed-transaction response must carry for us to trust it.
+#: Without this check, a wrong/mismatched RPC schema could still come back
+#: with a 200 and mostly-empty fields, and sign_transaction would report
+#: `ok: True` over a fiscally-invalid record instead of failing loudly.
+_REQUIRED_SIGN_FIELDS = (
+    "transactionNumber",
+    "serialNumber",
+    "signatureValue",
+    "signatureAlgorithm",
+)
+
+
 class TseSigner:
     def __init__(self, rpc_url: str) -> None:
         self._rpc_url = rpc_url.rstrip("/")
+        logger.warning(
+            "TSE signing is enabled, but this RPC client's request/response "
+            "schema has not been verified against real hardware (see the "
+            "module docstring in tse_signer.py). Do not rely on it for "
+            "production fiscalization until that verification has happened."
+        )
 
     async def sign_transaction(
         self, client_id: str, amount: float, currency: str, payment_method: str
@@ -59,6 +76,18 @@ class TseSigner:
                     body = await resp.text()
                     raise TseSignerError(f"sign-transaction failed ({resp.status}): {body}")
                 data = await resp.json()
+
+        missing = [f for f in _REQUIRED_SIGN_FIELDS if not data.get(f)]
+        if missing:
+            # A 200 with an incomplete body means the RPC schema doesn't
+            # match what this client expects — surfacing that as a failure
+            # (which the API records as a TSE outage) is safer than handing
+            # back a "successful" signature that's missing the fields a real
+            # receipt/audit would need.
+            raise TseSignerError(
+                f"sign-transaction response missing required field(s): {', '.join(missing)} "
+                "— check the RPC schema against tse_signer.py's expectations"
+            )
 
         return {
             "ok": True,
